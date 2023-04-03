@@ -109,12 +109,7 @@ class SerializableClosure implements Serializable
         return call_user_func_array($this->closure, func_get_args());
     }
 
-    /**
-     * Implementation of Serializable::serialize()
-     *
-     * @return  string  The serialized closure
-     */
-    public function serialize()
+    public function __serialize(): array
     {
         if ($this->scope === null) {
             $this->scope = new ClosureScope();
@@ -147,17 +142,19 @@ class SerializableClosure implements Serializable
 
         $this->mapByReference($use);
 
-        $ret = \serialize(array(
+        $ret = array(
             'use' => $use,
             'function' => $code,
             'scope' => $scope,
             'this' => $object,
             'self' => $this->reference,
-        ));
+        );
 
         if (static::$securityProvider !== null) {
-            $data = static::$securityProvider->sign($ret);
-            $ret =  '@' . $data['hash'] . '.' . $data['closure'];
+            $data = static::$securityProvider->sign(json_encode($ret));
+            $ret =  array(
+                'securityProvider' => '@' . $data['hash'] . '.' . $data['closure']
+            );
         }
 
         if (!--$this->scope->serializations && !--$this->scope->toserialize) {
@@ -167,28 +164,13 @@ class SerializableClosure implements Serializable
         return $ret;
     }
 
-    /**
-     * Transform the use variables before serialization.
-     *
-     * @param  array  $data The Closure's use variables
-     * @return array
-     */
-    protected function transformUseVariables($data)
-    {
-        return $data;
-    }
-
-    /**
-     * Implementation of Serializable::unserialize()
-     *
-     * @param   string $data Serialized data
-     * @throws SecurityException
-     */
-    public function unserialize($data)
+    public function __unserialize(array $data): void
     {
         ClosureStream::register();
 
-        if (static::$securityProvider !== null) {
+        if (static::$securityProvider !== null && isset($data['securityProvider']) && is_string($data['securityProvider'])) {
+            $data = $data['securityProvider'];
+
             if ($data[0] !== '@') {
                 throw new SecurityException("The serialized closure is not signed. ".
                     "Make sure you use a security provider for both serialization and unserialization.");
@@ -202,7 +184,7 @@ class SerializableClosure implements Serializable
                 $hash = substr($data, 1, $separator - 1);
                 $closure = substr($data, $separator + 1);
 
-                $data = ['hash' => $hash, 'closure' => $closure];
+                $data = ['hash' => $hash, 'closure' => json_decode($closure)];
 
                 unset($hash, $closure);
             } else {
@@ -216,30 +198,33 @@ class SerializableClosure implements Serializable
             }
 
             $data = $data['closure'];
-        } elseif ($data[0] === '@') {
-            if ($data[1] !== '{') {
-                $separator = strpos($data, '.');
-                if ($separator === false) {
+        } elseif (isset($data['securityProvider']) && is_string($data['securityProvider'])) {
+            $data = $data['securityProvider'];
+            if ($data[0] === '@') {
+                if ($data[1] !== '{') {
+                    $separator = strpos($data, '.');
+                    if ($separator === false) {
+                        throw new SecurityException('Invalid signed closure');
+                    }
+                    $hash = substr($data, 1, $separator - 1);
+                    $closure = substr($data, $separator + 1);
+
+                    $data = ['hash' => $hash, 'closure' => json_decode($closure)];
+
+                    unset($hash, $closure);
+                } else {
+                    $data = json_decode(substr($data, 1), true);
+                }
+
+                if (!is_array($data) || !isset($data['closure']) || !isset($data['hash'])) {
                     throw new SecurityException('Invalid signed closure');
                 }
-                $hash = substr($data, 1, $separator - 1);
-                $closure = substr($data, $separator + 1);
 
-                $data = ['hash' => $hash, 'closure' => $closure];
-
-                unset($hash, $closure);
-            } else {
-                $data = json_decode(substr($data, 1), true);
+                $data = $data['closure'];
             }
-
-            if (!is_array($data) || !isset($data['closure']) || !isset($data['hash'])) {
-                throw new SecurityException('Invalid signed closure');
-            }
-
-            $data = $data['closure'];
         }
 
-        $this->code = \unserialize($data);
+        $this->code = $data;
 
         // unset data
         unset($data);
@@ -269,6 +254,38 @@ class SerializableClosure implements Serializable
         }
 
         $this->code = $this->code['function'];
+    }
+
+    /**
+     * Implementation of Serializable::serialize()
+     *
+     * @return  string  The serialized closure
+     */
+    public function serialize()
+    {
+        return \serialize($this->__serialize());
+    }
+
+    /**
+     * Implementation of Serializable::unserialize()
+     *
+     * @param   string $data Serialized data
+     * @throws SecurityException
+     */
+    public function unserialize($data)
+    {
+        $this->__unserialize(\unserialize($data));
+    }
+
+    /**
+     * Transform the use variables before serialization.
+     *
+     * @param  array  $data The Closure's use variables
+     * @return array
+     */
+    protected function transformUseVariables($data)
+    {
+        return $data;
     }
 
     /**
