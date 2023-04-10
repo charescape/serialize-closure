@@ -110,6 +110,16 @@ class SerializableClosure implements Serializable
     }
 
     /**
+     * Implementation of Serializable::__serialize()
+     *
+     * @return string[]
+     */
+    public function __seriaize()
+    {
+        return [$this->serialize()];
+    }
+
+    /**
      * Implementation of Serializable::serialize()
      *
      * @return  string  The serialized closure
@@ -176,6 +186,18 @@ class SerializableClosure implements Serializable
     protected function transformUseVariables($data)
     {
         return $data;
+    }
+
+    /**
+     * Implementation of Serializable::__unserialize()
+     *
+     * @param array $data
+     * @return void
+     * @throws SecurityException
+     */
+    public function __unserialize(array $data)
+    {
+        $this->unserialize(reset($data));
     }
 
     /**
