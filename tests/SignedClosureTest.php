@@ -7,7 +7,6 @@
 
 namespace Opis\Closure\Test;
 
-use Opis\Closure\SecurityException;
 use Opis\Closure\SerializableClosure;
 
 class SignedClosureTest extends ClosureTest
@@ -102,6 +101,57 @@ class SignedClosureTest extends ClosureTest
         $this->assertTrue($closure());
     }
 
+    public function testSecurityProviderPersistsAfterNestedSerialization()
+    {
+        SerializableClosure::setSecretKey('secret');
+
+        $a = array();
+        $x = null;
+        $b = function() use(&$x){
+            return $x;
+        };
+        $c = function($i) use (&$a) {
+            $f = $a[$i];
+            return $f();
+        };
+        $a[] = $b;
+        $a[] = $c;
+        $x = $c;
+
+        $secProvider = SerializableClosure::getSecurityProvider();
+        $this->s($c);
+        $this->assertSame($secProvider, SerializableClosure::getSecurityProvider());
+    }
+
+    public function testSecurityProviderPersistsAfterFailedNestedSerialization()
+    {
+        SerializableClosure::setSecretKey('secret');
+
+        $a = array();
+        $x = null;
+        $b = function() use(&$x){
+            return $x;
+        };
+        $c = function($i) use (&$a) {
+            $f = $a[$i];
+            return $f();
+        };
+        $a[] = $b;
+        $a[] = $c;
+        $x = $c;
+
+        $secProvider = SerializableClosure::getSecurityProvider();
+        $value = serialize(new SerializableClosure($c));
+        $value = str_replace('$a[$i]', '$a[$z]', $value);
+        try {
+            $u = unserialize($value);
+        } catch (\Exception $e) {
+            $caught = true;
+        }
+        $this->assertTrue(isset($caught));
+        $this->assertSame($secProvider, SerializableClosure::getSecurityProvider());
+    }
+
     public function testJsonSecuredClosureWithoutSecuriyProvider()
     {
         SerializableClosure::setSecretKey('secret');
@@ -130,7 +180,7 @@ class SignedClosureTest extends ClosureTest
         };
 
         $value = serialize(new SerializableClosure($closure));
-        $value = str_replace('.', ',', $value);
+        $value = str_replace('closure', 'cl0sure', $value);
         SerializableClosure::removeSecurityProvider();
         unserialize($value);
     }
@@ -149,7 +199,7 @@ class SignedClosureTest extends ClosureTest
         };
 
         $value = serialize(new JsonSerializableClosure($closure));
-        $value = str_replace('hash', 'hash1', $value);
+        $value = str_replace('hash', 'ha5h', $value);
         SerializableClosure::removeSecurityProvider();
         unserialize($value);
     }
@@ -157,7 +207,7 @@ class SignedClosureTest extends ClosureTest
     public function testMixedEncodings()
     {
         $a = iconv('utf-8', 'utf-16', "Düsseldorf");
-        $b = utf8_decode("Düsseldorf");
+        $b = mb_convert_encoding("Düsseldorf", 'ISO-8859-1');
 
         $closure = function() use($a, $b) {
             return [$a, $b];

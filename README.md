@@ -1,9 +1,25 @@
 Opis Closure
 ====================
-[![Tests](https://github.com/opis/closure/workflows/Tests/badge.svg)](https://github.com/opis/closure/actions)
-[![Latest Stable Version](https://poser.pugx.org/opis/closure/v/stable.png)](https://packagist.org/packages/opis/closure)
-[![Latest Unstable Version](https://poser.pugx.org/opis/closure/v/unstable.png)](https://packagist.org/packages/opis/closure)
-[![License](https://poser.pugx.org/opis/closure/license.png)](https://packagist.org/packages/opis/closure)
+[![Tests](https://github.com/charescape/serialize-closure/workflows/Tests/badge.svg)](https://github.com/charescape/serialize-closure/actions)
+[![Latest Stable Version](https://poser.pugx.org/charescape/serialize-closure/v/stable.png)](https://packagist.org/packages/charescape/serialize-closure)
+[![Latest Unstable Version](https://poser.pugx.org/charescape/serialize-closure/v/unstable.png)](https://packagist.org/packages/charescape/serialize-closure)
+[![License](https://poser.pugx.org/opis/closure/license.png)](https://packagist.org/packages/charescape/serialize-closure)
+
+# Differences compared to the original version
+
+- Installs as a replacement of [opis/closure](https://github.com/opis/closure) package, 
+uses the same namespaces and classes:
+  > composer remove opis/closure<br />
+  > composer require charescape/serialize-closure
+- Added support for PHP 8.0, 8.1, 8.2
+- Fixed deprecations:
+  - [PHP 8.1: Serializable interface deprecated](https://php.watch/versions/8.1/serializable-deprecated)
+    - In order to fix this, the `SerializableClosure` produces a different serialization format,
+      which is not compatible with the original `Opis\Closure\SerializableClosure` class. <br />
+      <b>If you have serialized closures in your database or files, you will need to re-serialize them.</b>
+  - [PHP 8.2: Dynamic Properties are deprecated](https://php.watch/versions/8.2/dynamic-properties-deprecated)
+
+___
 
 Serializable closures
 ---------------------

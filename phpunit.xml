@@ -1,4 +1,8 @@
 <phpunit bootstrap="./vendor/autoload.php" verbose="true">
+    <php>
+        <ini name="error_reporting" value="32767" />
+    </php>
+
     <testsuites>
         <testsuite name="Main">
             <file phpVersion="5.4.0" phpVersionOperator=">=">./tests/ClosureTest.php</file>
@@ -35,7 +39,7 @@
             <file phpVersion="7.4.0" phpVersionOperator=">=">./tests/NamespaceGroupTest.php</file>
         </testsuite>
         <testsuite name="ReflectionClosure6">
-            <file phpVersion="8.0.0-dev" phpVersionOperator=">=">./tests/ReflectionClosure6Test.php</file>
+            <file phpVersion="8.0.0" phpVersionOperator=">=">./tests/ReflectionClosure6Test.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

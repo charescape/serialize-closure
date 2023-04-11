@@ -184,8 +184,8 @@ class ReflectionClosureTest extends \PHPUnit\Framework\TestCase
 
     public function testInterpolation1()
     {
-        $f1 = function() { return "${foo}${bar}{$foobar}"; };
-        $e1 = 'function() { return "${foo}${bar}{$foobar}"; }';
+        $f1 = function() { return "{$foo}{$bar}{$foobar}"; };
+        $e1 = 'function() { return "{$foo}{$bar}{$foobar}"; }';
 
         $this->assertEquals($e1, $this->c($f1));
     }

@@ -206,11 +206,15 @@ class ClosureTest extends \PHPUnit\Framework\TestCase
         $t2->func = $f;
 
         $t->subtest = $t2;
+        $this->assertSame($t->func, $t->subtest->func);
 
+        SerializableClosure::enterContext();
         $x = unserialize(serialize($t));
+        SerializableClosure::exitContext();
 
-        $g = $x->func;
-        $g = $g();
+        $this->assertSame($x->func, $x->subtest->func);
+        $fun = $x->func;
+        $g = $fun();
 
         $ok = $x->func == $x->subtest->func;
         $ok = $ok && ($x->subtest->func == $g);
@@ -297,7 +301,6 @@ class ClosureTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals('static protected called', $u());
     }
 
-
     public function testClosureStatic()
     {
         $f = static function(){};
@@ -358,26 +361,28 @@ class ObjnObj implements Serializable {
     public $subtest;
     public $func;
 
-    public function serialize() {
-
-        SerializableClosure::enterContext();
-
-        $object = serialize(array(
+    public function __serialize() {
+        $object = array(
             'subtest' => $this->subtest,
             'func' => SerializableClosure::from($this->func),
-        ));
-
-        SerializableClosure::exitContext();
+        );
 
         return $object;
     }
 
-    public function unserialize($data) {
-
-        $data = unserialize($data);
-
+    public function __unserialize($data) {
         $this->subtest = $data['subtest'];
         $this->func = $data['func']->getClosure();
+    }
+
+    public function serialize()
+    {
+        return serialize($this->__serialize());
+    }
+
+    public function unserialize($data)
+    {
+        $this->__unserialize($data);
     }
 }
 
