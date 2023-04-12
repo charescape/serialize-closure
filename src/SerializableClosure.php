@@ -383,7 +383,7 @@ class SerializableClosure implements Serializable
             unset($value);
             unset($data[self::ARRAY_RECURSIVE_KEY]);
         } elseif($data instanceof \stdClass){
-            if(isset($storage[$data])){
+            if(isset($storage[$data]) && $storage[$data] instanceof \stdClass){
                 $data = $storage[$data];
                 return;
             }

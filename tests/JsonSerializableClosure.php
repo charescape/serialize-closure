@@ -12,7 +12,7 @@ use Opis\Closure\SerializableClosure;
 
 class JsonSerializableClosure extends SerializableClosure
 {
-    public function serialize()
+    public function __serialize()
     {
         if ($this->scope === null) {
             $this->scope = new ClosureScope();
@@ -24,14 +24,14 @@ class JsonSerializableClosure extends SerializableClosure
         $scope = $object = null;
         $reflector = $this->getReflector();
 
-        if($reflector->isBindingRequired()){
+        if ($reflector->isBindingRequired()){
             $object = $reflector->getClosureThis();
             static::wrapClosures($object, $this->scope);
-            if($scope = $reflector->getClosureScopeClass()){
+            if ($scope = $reflector->getClosureScopeClass()) {
                 $scope = $scope->name;
             }
         } else {
-            if($scope = $reflector->getClosureScopeClass()){
+            if ($scope = $reflector->getClosureScopeClass()) {
                 $scope = $scope->name;
             }
         }
@@ -45,23 +45,39 @@ class JsonSerializableClosure extends SerializableClosure
 
         $this->mapByReference($use);
 
-        $ret = \serialize(array(
+        $ret = array(
             'use' => $use,
             'function' => $code,
             'scope' => $scope,
             'this' => $object,
             'self' => $this->reference,
-        ));
+        );
 
-        if (static::$securityProvider !== null) {
-            $data = static::$securityProvider->sign($ret);
-            $ret =  '@' . json_encode($data);
+        if (static::$securityProvider !== null && $this->scope->serializations === 1) {
+            $ser = \serialize($ret);
+            $ret = static::$securityProvider->sign($ser);
         }
 
         if (!--$this->scope->serializations && !--$this->scope->toserialize) {
             $this->scope = null;
         }
 
-        return $ret;
+        return [json_encode($ret)];
+    }
+
+    public function __unserialize($data)
+    {
+        if (is_array($data) && count($data) === 1 && isset($data[0])) {
+            $data = $data[0];
+        }
+
+        parent::__unserialize(json_decode($data, true));
+    }
+
+    public function unserialize($data)
+    {
+        $json = \unserialize($data);
+
+        $this->__unserialize($json);
     }
 }

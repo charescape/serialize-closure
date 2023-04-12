@@ -382,7 +382,7 @@ class ObjnObj implements Serializable {
 
     public function unserialize($data)
     {
-        $this->__unserialize($data);
+        $this->__unserialize(\unserialize($data));
     }
 }
 
